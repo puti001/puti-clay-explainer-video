@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<title>Puti-AI | Gemini 購物 3D 知識點影片（1080p 旗艦純淨版）</title>
+<style>
+  @font-face { font-family: "NTC"; src: url("fonts/NotoSansTC-VF.ttf"); font-weight: 100 900; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #e4dfd6; }
+  #c { position: absolute; inset: 0; width: 1920px; height: 1080px; display: block; }
+  #chapter {
+    position: absolute; left: 54px; top: 48px;
+    background: rgba(255, 255, 255, 0.94); backdrop-filter: blur(14px);
+    border: 1.5px solid rgba(0, 0, 0, 0.08); border-radius: 999px;
+    padding: 10px 26px 12px; font: 700 24px/1 "NTC", sans-serif;
+    color: #1d2742; box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 12px; z-index: 10;
+  }
+  #chapter .num {
+    background: #d8602a; color: #fff; width: 32px; height: 32px;
+    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font: 900 18px/1 "NTC", sans-serif;
+  }
+  #sub {
+    position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%);
+    background: rgba(29, 39, 66, 0.96); color: #fff; border-radius: 9px;
+    padding: 9px 26px 12px; font: 700 36px/1.35 "NTC", sans-serif; letter-spacing: 1.5px;
+    white-space: nowrap; opacity: 0; z-index: 10;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+  }
+  #foot {
+    position: absolute; left: 0; right: 0; bottom: 10px; text-align: center;
+    font: 400 16px "NTC", sans-serif; color: rgba(60, 60, 60, 0.45); z-index: 10;
+  }
+  #foot a { color: rgba(60, 60, 60, 0.6); }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "./node_modules/three/build/three.module.js",
+  "three/addons/": "./node_modules/three/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="chapter"><span class="num">1</span> 破題：五百億筆商品</div>
+<div id="sub"></div>
+<div id="foot">屏東縣後庄國小黃朝榮老師作品，免費分享，歡迎擴散推廣，嚴禁商用與任何侵權、不尊重著作權的行為　更多 Puti-AI 教學工具 <a href="https://padlet.com/clongwh/puti_ai_tools" target="_blank">點此前往</a></div>
+
+<script type="module">
+import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { TTFLoader } from "three/addons/loaders/TTFLoader.js";
+import { Font } from "three/addons/loaders/FontLoader.js";
+import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
+
+// ---------- 數學工具 ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const prog = (t, t0, d) => clamp((t - t0) / d);
+const eio = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+const eout = (u) => 1 - Math.pow(1 - u, 3);
+const ein = (u) => u * u * u;
+const ebackOut = (u, s = 1.70158) => { const v = u - 1; return v * v * ((s + 1) * v + s) + 1; };
+const ebackIn = (u, s = 1.70158) => u * u * ((s + 1) * u - s);
+const spring = (s, f = 3.2, z = 5.5) => (s < 0 ? 0 : Math.exp(-z * s) * Math.cos(2 * Math.PI * f * s));
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ---------- 時間軸資料 ----------
+const CUES = await (await fetch("cues.json")).json();
+const C = CUES.cues, TOTAL = CUES.total;
+
+// ---------- 渲染器與棚景（1080p 超取樣與高清晰度） ----------
+await document.fonts.load('900 60px "NTC"');
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1.0);
+renderer.setSize(1920, 1080, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.VSMShadowMap;
+
+const scene = new THREE.Scene();
+const BG = 0xe2ddd4;
+{
+  const g = document.createElement("canvas"); g.width = 1920; g.height = 1080;
+  const x = g.getContext("2d"), rg = x.createRadialGradient(960, 500, 80, 960, 540, 1200);
+  rg.addColorStop(0, "#efebe4"); rg.addColorStop(1, "#d6d0c5");
+  x.fillStyle = rg; x.fillRect(0, 0, 1920, 1080);
+  const tex = new THREE.CanvasTexture(g); tex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = tex;
+}
+scene.fog = new THREE.Fog(BG, 14, 35);
+const camera = new THREE.PerspectiveCamera(32, 1920 / 1080, 0.1, 100);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xcfc6b8, 1.4));
+const key = new THREE.DirectionalLight(0xfff4e6, 2.4);
+key.position.set(-6, 12, 8);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 40 });
+key.shadow.radius = 16; key.shadow.blurSamples = 24; key.shadow.bias = -0.0006;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0xe8eeff, 0.65);
+fill.position.set(8, 5, 7); scene.add(fill);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 140), new THREE.MeshStandardMaterial({ color: 0xe6e0d6, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+// ---------- 4K 超清晰標籤材質產生器（徹底告別模糊！） ----------
+function labelTex(w, h, draw) {
+  const scale = 2.5; // 2.5 倍高倍率超取樣
+  const c = document.createElement("canvas");
+  c.width = Math.round(w * scale);
+  c.height = Math.round(h * scale);
+  const ctx = c.getContext("2d");
+  ctx.scale(scale, scale);
+  draw(ctx, w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 16;
+  t.minFilter = THREE.LinearFilter;
+  t.magFilter = THREE.LinearFilter;
+  return t;
+}
+function rr(x, X, Y, W, H, R) { x.beginPath(); x.roundRect(X, Y, W, H, R); }
+
+const M = {
+  orange: new THREE.MeshPhysicalMaterial({ color: 0xd8602a, roughness: 0.5, clearcoat: 0.25 }),
+  navy: new THREE.MeshPhysicalMaterial({ color: 0x1c2647, roughness: 0.25, clearcoat: 0.6 }),
+  navyText: new THREE.MeshPhysicalMaterial({ color: 0x223067, roughness: 0.45, clearcoat: 0.3 }),
+  cheek: new THREE.MeshStandardMaterial({ color: 0xf3a497, roughness: 0.8, transparent: true, opacity: 0.85 }),
+  card: new THREE.MeshStandardMaterial({ color: 0xc69c70, roughness: 0.85 }),
+  tape: new THREE.MeshStandardMaterial({ color: 0xe9d7b5, roughness: 0.6 }),
+  paper: new THREE.MeshStandardMaterial({ color: 0xf6f3ec, roughness: 0.7 }),
+  metalGate: new THREE.MeshStandardMaterial({ color: 0x3d4352, roughness: 0.35, metalness: 0.65 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xd4a034, roughness: 0.3, metalness: 0.8 }),
+  green: new THREE.MeshPhysicalMaterial({ color: 0x2fa36b, roughness: 0.4 }),
+  funnel: new THREE.MeshPhysicalMaterial({ color: 0x4a7eb8, roughness: 0.35, clearcoat: 0.3 }),
+  shockwave: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 }),
+};
+const shadowy = (m) => { m.castShadow = true; m.receiveShadow = true; return m; };
+
+// ==========================================
+// 地面衝擊波特效環（Shockwave Ring）
+// ==========================================
+const shockwaveMesh = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.45, 48), M.shockwave);
+shockwaveMesh.rotation.x = -Math.PI / 2; shockwaveMesh.position.y = 0.01;
+scene.add(shockwaveMesh);
+
+function triggerShockwave(t, impactT, dur, maxRad, originX, originZ) {
+  const u = prog(t, impactT, dur);
+  if (u <= 0 || u >= 1) {
+    shockwaveMesh.material.opacity = 0;
+    return;
+  }
+  shockwaveMesh.position.set(originX, 0.012, originZ);
+  const rad = lerp(0.3, maxRad, eout(u));
+  shockwaveMesh.scale.set(rad, rad, 1);
+  shockwaveMesh.material.opacity = (1 - u) * 0.75;
+}
+
+// ==========================================
+// 角色：純淨、皮克斯黏土靈魂的小橘人（徹底移除怪異懸空小橘塊！）
+// ==========================================
+const hero = new THREE.Group(); scene.add(hero);
+const heroBody = new THREE.Group(); hero.add(heroBody);
+const bodyMesh = shadowy(new THREE.Mesh(new RoundedBoxGeometry(1.0, 0.95, 0.92, 7, 0.3), M.orange));
+bodyMesh.position.y = 0.475; heroBody.add(bodyMesh);
+
+// 臉部群組
+const face = new THREE.Group(); face.position.set(0, 0.5, 0.465); heroBody.add(face);
+
+// 兩顆純粹可愛的黑豆眼 + 視線追蹤
+const eyeLGroup = new THREE.Group(); eyeLGroup.position.set(-0.17, 0.06, 0);
+const eyeRGroup = new THREE.Group(); eyeRGroup.position.set(0.17, 0.06, 0);
+face.add(eyeLGroup, eyeRGroup);
+
+const eyeSocketGeo = new THREE.CapsuleGeometry(0.052, 0.085, 6, 12);
+const socketL = new THREE.Mesh(eyeSocketGeo, M.navy); socketL.scale.z = 0.5;
+const socketR = new THREE.Mesh(eyeSocketGeo, M.navy); socketR.scale.z = 0.5;
+eyeLGroup.add(socketL); eyeRGroup.add(socketR);
+
+// 眉毛（傾斜表達恐懼、懷疑、驚訝）
+const browGeo = new THREE.BoxGeometry(0.14, 0.032, 0.02);
+const browL = new THREE.Mesh(browGeo, M.navy); browL.position.set(-0.17, 0.165, 0.01);
+const browR = new THREE.Mesh(browGeo, M.navy); browR.position.set(0.17, 0.165, 0.01);
+face.add(browL, browR);
+
+// 臉頰紅暈
+[-0.29, 0.29].forEach((x) => {
+  const c = new THREE.Mesh(new THREE.CircleGeometry(0.065, 24), M.cheek);
+  c.position.set(x, -0.06, 0.006); face.add(c);
+});
+
+// 嘴型
+const smile = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.017, 10, 24, Math.PI), M.navy);
+smile.rotation.z = Math.PI; smile.position.set(0, -0.06, 0.01); face.add(smile);
+const oMouth = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.018, 10, 24), M.navy);
+oMouth.position.set(0, -0.09, 0.01); face.add(oMouth);
+const straightMouth = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.025, 0.02), M.navy);
+straightMouth.position.set(0, -0.08, 0.01); face.add(straightMouth); straightMouth.visible = false;
+
+// 眩暈蚊香眼（第2幕）
+const dizzyEyes = new THREE.Group(); dizzyEyes.position.set(0, 0.06, 0.01); face.add(dizzyEyes);
+[-0.17, 0.17].forEach((x) => {
+  const de = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.016, 8, 20), M.navy);
+  de.position.x = x; dizzyEyes.add(de);
+});
+dizzyEyes.visible = false;
+
+// 思考問號（第3幕）
+const qMark = new THREE.Group(); qMark.position.set(0.35, 1.3, 0); hero.add(qMark);
+const qPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.55), new THREE.MeshBasicMaterial({
+  transparent: true,
+  map: labelTex(240, 240, (x, w, h) => {
+    x.fillStyle = "#d8462f"; x.font = '900 150px "NTC"'; x.textAlign = "center"; x.fillText("?", w/2, 170);
+  })
+}));
+qMark.add(qPlane); qMark.visible = false;
+
+// 視線目標追蹤（Gaze Target）
+const gazeWorld = new THREE.Vector3();
+function setGaze(targetVec3) {
+  gazeWorld.copy(targetVec3);
+  const localTarget = face.worldToLocal(gazeWorld.clone());
+  const lookX = clamp(localTarget.x * 0.12, -0.038, 0.038);
+  const lookY = clamp(localTarget.y * 0.12, -0.038, 0.038);
+  socketL.position.set(lookX, lookY, 0);
+  socketR.position.set(lookX, lookY, 0);
+}
+
+// ==========================================
+// 第 1 幕 物件：500億大紙箱 + 噴發包裹 + 3D文字
+// ==========================================
+const s1Group = new THREE.Group(); scene.add(s1Group);
+const bigBox = new THREE.Group(); s1Group.add(bigBox);
+const BW = 2.3, BH = 1.6, BD = 1.6;
+const boxBody = shadowy(new THREE.Mesh(new RoundedBoxGeometry(BW, BH, BD, 4, 0.06), M.card));
+boxBody.position.y = BH / 2; bigBox.add(boxBody);
+const tapeV = shadowy(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.02, BD + 0.02), M.tape));
+tapeV.position.set(0, BH + 0.005, 0); bigBox.add(tapeV);
+const bigLabel = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.75), new THREE.MeshStandardMaterial({
+  roughness: 0.7, transparent: true,
+  map: labelTex(900, 450, (x, w, h) => {
+    rr(x, 8, 8, w - 16, h - 16, 36); x.fillStyle = "#f7f3ea"; x.fill();
+    x.lineWidth = 8; x.strokeStyle = "#223067"; x.stroke();
+    x.fillStyle = "#223067"; x.textAlign = "center"; x.font = '900 170px "NTC"'; x.fillText("500 億筆", w / 2, 230);
+    x.font = '700 66px "NTC"'; x.fillStyle = "#c2532a"; x.fillText("SHOPPING GRAPH", w / 2, 350);
+  }),
+}));
+bigLabel.position.set(0, BH * 0.52, BD / 2 + 0.005); bigBox.add(bigLabel);
+const flaps = [-1, 1].map((s) => {
+  const pivot = new THREE.Group(); pivot.position.set(0, BH + 0.01, (s * BD) / 2); bigBox.add(pivot);
+  const f = shadowy(new THREE.Mesh(new THREE.BoxGeometry(BW - 0.04, 0.03, BD / 2), M.card));
+  f.position.z = (-s * BD) / 4; pivot.add(f); pivot.userData.s = s; return pivot;
+});
+
+const tagTexs = ["$8,990", "$6,490", "$7,880", "$12,900", "$5,990"].map((p) => labelTex(400, 240, (x, w, h) => {
+  rr(x, 6, 6, w - 12, h - 12, 30); x.fillStyle = "#fbf8f2"; x.fill();
+  x.fillStyle = "#d8462f"; x.font = '900 96px "NTC"'; x.textAlign = "center"; x.fillText(p, w / 2, 150);
+  x.beginPath(); x.arc(44, 44, 15, 0, 7); x.fillStyle = "#c9c1b2"; x.fill();
+}));
+const R = rng(20261109);
+const N = 64, items = [];
+const slots = [];
+for (let k = 0; k < N; k++) {
+  const a = k * 2.39996, r = 0.15 + Math.sqrt((k + 0.5) / N) * 1.75;
+  slots.push({ x: -1.5 + Math.cos(a) * r * 1.05, z: 0.15 + Math.sin(a) * r * 0.75, y: 0.12 + R() * 1.4 });
+}
+slots.sort((p, q) => p.y - q.y);
+for (let k = 0; k < N; k++) {
+  const isTag = R() < 0.28, s = 0.2 + R() * 0.17;
+  let mesh;
+  if (isTag) {
+    mesh = new THREE.Group();
+    const base = shadowy(new THREE.Mesh(new RoundedBoxGeometry(0.42, 0.26, 0.025, 2, 0.01), M.paper));
+    const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.25), new THREE.MeshStandardMaterial({ map: tagTexs[k % 5], transparent: true, roughness: 0.7 }));
+    lab.position.z = 0.014; mesh.add(base, lab);
+  } else {
+    mesh = new THREE.Group();
+    const b = shadowy(new THREE.Mesh(new RoundedBoxGeometry(s * 1.25, s, s, 2, 0.025), M.card));
+    const tp = new THREE.Mesh(new THREE.BoxGeometry(s * 0.28, 0.006, s + 0.004), M.tape);
+    tp.position.y = s / 2 + 0.002; mesh.add(b, tp);
+  }
+  s1Group.add(mesh);
+  const slot = slots[k];
+  items.push({
+    mesh, isTag,
+    launch: 3.8 + (k / N) * 1.2,
+    flight: 0.55 + R() * 0.3,
+    apex: 1.3 + R() * 1.3,
+    from: new THREE.Vector3(1.45 + (R() - 0.5) * 1.2, 1.75, -0.35 + (R() - 0.5) * 0.8),
+    to: new THREE.Vector3(slot.x, slot.y + (isTag ? 0.03 : s / 2), slot.z),
+    r0: new THREE.Euler(R() * 6, R() * 6, R() * 6),
+    w: new THREE.Vector3((R() - 0.5) * 16, (R() - 0.5) * 16, (R() - 0.5) * 16),
+    rest: new THREE.Euler(isTag ? -Math.PI / 2 + (R() - 0.5) * 0.5 : (R() - 0.5) * 0.4, R() * 6, (R() - 0.5) * 0.4),
+    vanishDelay: Math.hypot(slot.x - (-1.5), slot.z - 0.15) * 0.22,
+  });
+}
+
+// 比較表卡片
+const card = new THREE.Group(); s1Group.add(card);
+const cardBase = shadowy(new THREE.Mesh(new RoundedBoxGeometry(0.95, 1.2, 0.04, 2, 0.02), M.paper));
+const cardFace = new THREE.Mesh(new THREE.PlaneGeometry(0.93, 1.18), new THREE.MeshStandardMaterial({
+  roughness: 0.7, transparent: true,
+  map: labelTex(700, 880, (x, w, h) => {
+    x.fillStyle = "#223067"; x.font = '900 80px "NTC"'; x.textAlign = "left"; x.fillText("比較表", 50, 115);
+    x.fillStyle = "#d8602a"; x.fillRect(50, 145, 180, 12);
+    const rows = [["A 款", 0.55, "#9aa6c4"], ["B 款", 0.9, "#2fa36b"], ["C 款", 0.7, "#9aa6c4"]];
+    rows.forEach(([n, v, col], i) => {
+      const y = 250 + i * 180;
+      x.fillStyle = "#3b4256"; x.font = '700 60px "NTC"'; x.fillText(n, 50, y + 20);
+      rr(x, 220, y - 26, 400, 52, 26); x.fillStyle = "#e9e4da"; x.fill();
+      rr(x, 220, y - 26, 400 * v, 52, 26); x.fillStyle = col; x.fill();
+    });
+    x.strokeStyle = "#2fa36b"; x.lineWidth = 24; x.lineCap = "round"; x.beginPath();
+    x.moveTo(450, 770); x.lineTo(510, 830); x.lineTo(630, 710); x.stroke();
+  }),
+}));
+cardFace.position.z = 0.022; card.add(cardBase, cardFace);
+
+// 3D 立體字「Gemini購物」
+const fontData = await new Promise((ok, no) => new TTFLoader().load("fonts/huninn_sub.ttf", ok, undefined, no));
+const font = new Font(fontData);
+const letters = [];
+{
+  const str = "Gemini購物", size = 0.52, scale = size / fontData.resolution;
+  let x = 0.0;
+  [...str].forEach((ch, i) => {
+    const g = new TextGeometry(ch, { font, size, depth: 0.17, curveSegments: 8, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.018, bevelSegments: 5 });
+    g.computeBoundingBox();
+    const m = shadowy(new THREE.Mesh(g, i < 6 ? M.orange : M.navyText));
+    const adv = (fontData.glyphs[ch]?.ha ?? fontData.resolution * 0.6) * scale;
+    m.userData = { x: x, i };
+    x += adv + (i === 5 ? 0.14 : 0.015);
+    s1Group.add(m); letters.push(m);
+  });
+  letters.forEach((m) => { m.userData.x += 0.1; });
+}
+
+// ==========================================
+// 第 2 幕 物件：8 個環繞分頁 + 磁吸收納盒
+// ==========================================
+const s2Group = new THREE.Group(); scene.add(s2Group);
+const tabTitles = ["momo 購物網", "PChome 24h", "蝦皮商城", "Yahoo 購物", "Mobile01 開箱", "PTT 家電板", "燦坤線上", "全國電子"];
+const tabColors = ["#ec1c24", "#0076cb", "#ee4d2d", "#7b1fa2", "#27ae60", "#2c3e50", "#f39c12", "#d35400"];
+const tabCards = [];
+tabTitles.forEach((name, i) => {
+  const g = new THREE.Group();
+  const base = shadowy(new THREE.Mesh(new RoundedBoxGeometry(0.85, 0.6, 0.025, 2, 0.02), M.paper));
+  const faceMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.83, 0.58), new THREE.MeshStandardMaterial({
+    roughness: 0.6, transparent: true,
+    map: labelTex(600, 420, (x, w, h) => {
+      rr(x, 6, 6, w - 12, h - 12, 28); x.fillStyle = "#ffffff"; x.fill();
+      x.fillStyle = tabColors[i]; x.fillRect(6, 6, w - 12, 75);
+      x.fillStyle = "#ffffff"; x.font = '700 40px "NTC"'; x.textAlign = "left"; x.fillText(name, 35, 56);
+      x.fillStyle = "#e5e7eb"; x.fillRect(35, 120, 230, 28);
+      x.fillStyle = "#9ca3af"; x.fillRect(35, 170, 400, 22);
+      x.fillRect(35, 210, 310, 22);
+      x.fillStyle = "#d8462f"; x.font = '900 60px "NTC"'; x.fillText("$" + (6000 + i * 400), 35, 330);
+    })
+  }));
+  faceMesh.position.z = 0.014; g.add(base, faceMesh);
+  g.visible = false;
+  s2Group.add(g);
+  tabCards.push(g);
+});
+
+// 磁吸收納盒（置於主角右前方，絕對不擋住標籤）
+const binder = new THREE.Group(); s2Group.add(binder);
+const binderBody = shadowy(new THREE.Mesh(new RoundedBoxGeometry(1.25, 1.55, 0.38, 3, 0.06), M.navy));
+binder.add(binderBody);
+const binderLabel = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.45), new THREE.MeshStandardMaterial({
+  transparent: true,
+  map: labelTex(650, 300, (x, w, h) => {
+    rr(x, 8, 8, w - 16, h - 16, 24); x.fillStyle = "#2fa36b"; x.fill();
+    x.fillStyle = "#ffffff"; x.font = '900 70px "NTC"'; x.textAlign = "center"; x.fillText("規格初篩表", w/2, 160);
+  })
+}));
+binderLabel.position.set(0, 0, 0.2); binder.add(binderLabel);
+binder.visible = false;
+
+// ==========================================
+// 第 3 幕 物件：小推車 + 會員登入金屬牆 + 飛天折價券
+// ==========================================
+const s3Group = new THREE.Group(); scene.add(s3Group);
+
+// 小購物車
+const cart = new THREE.Group(); s3Group.add(cart);
+const cartBasket = shadowy(new THREE.Mesh(new RoundedBoxGeometry(0.85, 0.48, 0.62, 2, 0.04), M.orange));
+cartBasket.position.y = 0.42; cart.add(cartBasket);
+[-0.26, 0.26].forEach((z) => {
+  [-0.32, 0.32].forEach((x) => {
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 16), M.navy);
+    wheel.rotation.z = Math.PI / 2; wheel.position.set(x, 0.08, z); cart.add(wheel);
+  });
+});
+const handleBar = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.55), M.navy);
+handleBar.position.set(-0.46, 0.55, 0); cart.add(handleBar);
+
+const cartItem = shadowy(new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.4, 0.4, 2, 0.03), M.card));
+cartItem.position.set(0, 0.68, 0); cart.add(cartItem);
+
+// 會員登入大金屬牆
+const gate = new THREE.Group(); s3Group.add(gate);
+const gateMesh = shadowy(new THREE.Mesh(new RoundedBoxGeometry(3.6, 2.7, 0.2, 3, 0.08), M.metalGate));
+gate.position.y = 1.35; gate.add(gateMesh);
+const gateSign = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.4), new THREE.MeshStandardMaterial({
+  transparent: true, roughness: 0.5,
+  map: labelTex(1200, 520, (x, w, h) => {
+    rr(x, 15, 15, w - 30, h - 30, 36); x.fillStyle = "#1e2330"; x.fill();
+    x.lineWidth = 12; x.strokeStyle = "#e53e3e"; x.stroke();
+    x.fillStyle = "#ffd166"; x.font = '900 102px "NTC"'; x.textAlign = "center"; x.fillText("🔒 會員專屬登入牆", w/2, 165);
+    x.fillStyle = "#ffffff"; x.font = '700 60px "NTC"'; x.fillText("登入後才顯示券後底價", w/2, 300);
+    x.fillStyle = "#9ca3af"; x.font = '500 45px "NTC"'; x.fillText("AI 爬蟲無權限存取真實優惠", w/2, 400);
+  })
+}));
+gateSign.position.z = 0.11; gate.add(gateSign);
+gate.visible = false;
+
+// 漫天折價券
+const couponCards = [];
+const couponTexts = ["折 $500", "滿萬折千", "會員神券", "限時 88 折", "免運券"];
+for (let i = 0; i < 28; i++) {
+  const cMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.28), new THREE.MeshStandardMaterial({
+    side: THREE.DoubleSide, roughness: 0.6,
+    map: labelTex(360, 210, (x, w, h) => {
+      rr(x, 6, 6, w - 12, h - 12, 24); x.fillStyle = "#fee2e2"; x.fill();
+      x.lineWidth = 6; x.strokeStyle = "#ef4444"; x.stroke();
+      x.fillStyle = "#dc2626"; x.font = '900 58px "NTC"'; x.textAlign = "center"; x.fillText(couponTexts[i % 5], w/2, 125);
+    })
+  }));
+  cMesh.position.set((R() - 0.5) * 6, 2.5 + R() * 2.5, (R() - 0.5) * 4);
+  cMesh.rotation.set(R() * 6, R() * 6, R() * 6);
+  s3Group.add(cMesh);
+  couponCards.push({ mesh: cMesh, r0: cMesh.rotation.clone(), speed: 0.8 + R() * 0.8 });
+  cMesh.visible = false;
+}
+
+// ==========================================
+// 第 4 幕 物件：漏斗 + 3 大贏家獎台 + 金牌彩帶紙花
+// ==========================================
+const s4Group = new THREE.Group(); scene.add(s4Group);
+
+// 3D 漏斗
+const funnel = new THREE.Group(); s4Group.add(funnel);
+const funnelTop = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(1.4, 0.45, 1.2, 32, 1, true), M.funnel));
+funnelTop.position.y = 2.4; funnel.add(funnelTop);
+const funnelSpout = shadowy(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.6, 32), M.funnel));
+funnelSpout.position.y = 1.5; funnel.add(funnelSpout);
+funnel.visible = false;
+
+// 需求膠囊
+const filterPills = ["台北套房", "安靜省電", "預算 8,000"].map((text, i) => {
+  const p = new THREE.Group();
+  const b = shadowy(new THREE.Mesh(new RoundedBoxGeometry(0.9, 0.35, 0.25, 3, 0.08), M.paper));
+  const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.3), new THREE.MeshBasicMaterial({
+    map: labelTex(450, 160, (x, w, h) => {
+      rr(x, 6, 6, w - 12, h - 12, 24); x.fillStyle = "#3b82f6"; x.fill();
+      x.fillStyle = "#ffffff"; x.font = '900 54px "NTC"'; x.textAlign = "center"; x.fillText(text, w/2, 100);
+    })
+  }));
+  lab.position.z = 0.13; p.add(b, lab);
+  s4Group.add(p); p.visible = false; return p;
+});
+
+// 3 個頒獎台 + 3 張產品卡（4K 超高解析度文字，銳利無比！）
+const podiums = [-1.4, 0.0, 1.4].map((x, i) => {
+  const heights = [0.6, 0.95, 0.45];
+  const g = new THREE.Group(); g.position.set(x, 0, 0);
+  const base = shadowy(new THREE.Mesh(new RoundedBoxGeometry(1.05, heights[i], 0.85, 3, 0.05), M.paper));
+  base.position.y = heights[i] / 2; g.add(base);
+  
+  const cTitle = ["品牌 A 6L", "首選推薦 B", "品牌 C 靜音"][i];
+  const cTag = ["空間適配", "一級節能 · 規格全勝", "平價靜音"][i];
+  const card = new THREE.Group();
+  const cMesh = shadowy(new THREE.Mesh(new RoundedBoxGeometry(0.9, 0.75, 0.04, 2, 0.02), i === 1 ? M.paper : M.card));
+  const cFace = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.72), new THREE.MeshStandardMaterial({
+    roughness: 0.5,
+    map: labelTex(800, 640, (ctx, w, h) => {
+      rr(ctx, 10, 10, w - 20, h - 20, 36); ctx.fillStyle = i === 1 ? "#ecfdf5" : "#ffffff"; ctx.fill();
+      ctx.lineWidth = 10; ctx.strokeStyle = i === 1 ? "#10b981" : "#cbd5e1"; ctx.stroke();
+      if (i === 1) {
+        ctx.fillStyle = "#10b981"; ctx.beginPath(); ctx.arc(70, 70, 32, 0, 7); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.font = '900 42px sans-serif'; ctx.textAlign = "center"; ctx.fillText("✓", 70, 84);
+      }
+      ctx.fillStyle = i === 1 ? "#065f46" : "#1e293b"; ctx.font = '900 68px "NTC"'; ctx.textAlign = "center"; ctx.fillText(cTitle, w/2, 130);
+      ctx.fillStyle = "#d8462f"; ctx.font = '900 90px "NTC"'; ctx.fillText("$" + [6490, 7880, 5990][i], w/2, 280);
+      ctx.fillStyle = i === 1 ? "#047857" : "#64748b"; ctx.font = '700 48px "NTC"'; ctx.fillText(cTag, w/2, 440);
+    })
+  }));
+  cFace.position.z = 0.022; card.add(cMesh, cFace);
+  card.position.set(0, heights[i] + 0.42, 0);
+  g.add(card);
+  s4Group.add(g); g.visible = false;
+  return { g, card, h: heights[i] };
+});
+
+// 第 4 幕紙花粒子系統（Confetti Particles）
+const confettiCount = 54;
+const confettiGeo = new THREE.PlaneGeometry(0.12, 0.12);
+const confettiCols = [0xd8602a, 0x2fa36b, 0x3b82f6, 0xf59e0b, 0xec4899];
+const confettiMeshes = [];
+for (let i = 0; i < confettiCount; i++) {
+  const m = new THREE.Mesh(confettiGeo, new THREE.MeshBasicMaterial({ color: confettiCols[i % confettiCols.length], side: THREE.DoubleSide }));
+  m.position.set((R() - 0.5) * 4.5, 3.5 + R() * 2.5, (R() - 0.5) * 2.5);
+  s4Group.add(m); m.visible = false;
+  confettiMeshes.push({ mesh: m, vy: 0.022 + R() * 0.03, rx: R() * 0.25, ry: R() * 0.25 });
+}
+
+// ==========================================
+// 攝影機關鍵路徑（4 幕連貫運鏡）
+// ==========================================
+const K = [
+  // Scene 1: 0.0 ~ 16.0s
+  [0.0,  [-1.5, 0.82, 2.55], [-1.5, 0.5, 0]],
+  [1.0,  [-1.5, 0.82, 2.55], [-1.5, 0.5, 0]],
+  [2.9,  [0.0, 2.3, 8.2],    [0.0, 0.75, 0]],
+  [5.5,  [-0.7, 2.0, 6.9],   [-0.9, 0.65, 0]],
+  [8.0,  [-0.8, 1.65, 6.1],  [-1.0, 0.62, 0]],
+  [11.5, [-1.0, 1.35, 5.0],  [-1.0, 0.62, 0]],
+  [14.0, [0.35, 2.05, 8.5],  [0.35, 0.62, 0]],
+  [15.8, [0.45, 1.95, 8.2],  [0.45, 0.62, 0]],
+  
+  // Scene 2: 16.5 ~ 32.5s (從中間環視)
+  [16.8, [0.0, 2.2, 7.8],    [0.0, 0.7, 0]],
+  [22.0, [0.2, 2.4, 7.6],    [0.0, 0.75, 0]],
+  [27.0, [0.3, 2.0, 6.8],    [0.2, 0.75, 0]],
+  [31.8, [0.3, 1.8, 6.2],    [0.2, 0.7, 0]],
+  
+  // Scene 3: 32.5 ~ 47.5s (平移鏡頭，跟隨推車)
+  [33.0, [-0.5, 1.8, 6.8],   [-0.2, 0.8, 0]],
+  [36.5, [0.2, 2.2, 8.2],    [0.4, 1.1, 0]],
+  [41.0, [0.0, 2.0, 7.5],    [0.2, 0.9, 0]],
+  [46.5, [0.0, 1.9, 7.0],    [0.0, 0.85, 0]],
+  
+  // Scene 4: 47.5 ~ 62.3s (緩慢推近，終曲盛典)
+  [48.0, [0.0, 2.5, 8.2],    [0.0, 1.1, 0]],
+  [53.0, [0.0, 2.2, 7.6],    [0.0, 0.85, 0]],
+  [57.0, [-0.3, 1.85, 6.2],  [-0.1, 0.8, 0]],
+  [TOTAL,[-0.4, 1.75, 5.8],  [-0.1, 0.78, 0]],
+];
+const v3 = (a) => new THREE.Vector3(...a);
+function camAt(t) {
+  let i = 0; while (i < K.length - 2 && t > K[i + 1][0]) i++;
+  const [t0, p0, l0] = K[i], [t1, p1, l1] = K[i + 1];
+  const u = eio(prog(t, t0, t1 - t0));
+  const p = v3(p0).lerp(v3(p1), u), l = v3(l0).lerp(v3(l1), u);
+  camera.position.copy(p); camera.lookAt(l);
+}
+
+// ==========================================
+// 每一幀純函數渲染：t → 全場幾何與動畫
+// ==========================================
+function renderAt(t) {
+  camAt(t);
+
+  // -------------------------
+  // 衝擊波特效判定
+  // -------------------------
+  if (t >= 2.15 && t < 3.2) {
+    triggerShockwave(t, 2.15, 0.85, 2.8, 1.45, -0.35); // 大箱落地衝擊波
+  } else if (t >= 36.5 && t < 37.5) {
+    triggerShockwave(t, 36.5, 0.75, 3.5, 1.4, 0.2); // 鐵門砸地衝擊波
+  } else if (t >= 26.8 && t < 27.6) {
+    triggerShockwave(t, 26.8, 0.65, 1.8, 0.95, 0.3); // 收納盒扣合衝擊波
+  } else {
+    shockwaveMesh.material.opacity = 0;
+  }
+
+  // -------------------------
+  // 第 1 幕 渲染（0 ~ 16.0s）
+  // -------------------------
+  const s1FadeOut = prog(t, 15.6, 0.8);
+  const s1Active = t < 16.5;
+  s1Group.visible = s1Active;
+  if (s1Active) {
+    s1Group.position.y = -s1FadeOut * 4.0; // 平滑向下掉落離場
+
+    // 大箱子
+    const u = prog(t, 1.7, 0.45), y = (1 - u * u) * 7;
+    const land = t - 2.15;
+    const sq = land > 0 ? spring(land, 2.6, 6) * 0.14 : 0;
+    const away = eio(prog(t, 7.7, 0.9));
+    bigBox.position.set(lerp(1.45, 5.2, away), y + away * 3.4, lerp(-0.35, -2.5, away));
+    const sc = lerp(1, 0.001, Math.pow(away, 1.4));
+    bigBox.scale.set(sc * (1 + sq * 0.5), sc * (1 - sq), sc * (1 + sq * 0.5));
+    bigBox.visible = t > 1.69 && sc > 0.002;
+    const open = t - 3.7;
+    flaps.forEach((p) => { p.rotation.x = open > 0 ? p.userData.s * (-2.0 + spring(open, 2.2, 4.5) * 0.9) * clamp(open * 6) : 0; });
+
+    // 噴發小包裹
+    for (const it of items) {
+      const u = (t - it.launch) / it.flight, m = it.mesh;
+      const vanishU = prog(t, 7.6 + it.vanishDelay, 0.28);
+      if (u <= 0 || vanishU >= 1) { m.visible = false; continue; }
+      m.visible = true;
+      if (u < 1) {
+        m.position.lerpVectors(it.from, it.to, u);
+        m.position.y += 4 * it.apex * u * (1 - u);
+        m.rotation.set(it.r0.x + it.w.x * u, it.r0.y + it.w.y * u, it.r0.z + it.w.z * u);
+      } else {
+        m.position.copy(it.to);
+        const vs = 1 - ebackIn(vanishU);
+        m.scale.setScalar(Math.max(0.001, vs));
+      }
+    }
+
+    // 比較表卡片
+    const cu = prog(t, 9.0, 0.65), ce = eout(cu);
+    card.visible = t > 9.0;
+    card.position.lerpVectors(new THREE.Vector3(3.2, 4.2, 1.2), new THREE.Vector3(-0.55, 0.62, 0.45), ce);
+    card.position.y += Math.sin(Math.PI * cu) * 0.7;
+
+    // 3D 立體字
+    letters.forEach((m) => {
+      const t0 = 12.0 + m.userData.i * 0.075, s = t - t0;
+      m.visible = s > 0;
+      const fall = clamp(s / 0.34), y = (1 - fall * fall) * 3.2;
+      const lnd = s - 0.34, lsq = lnd > 0 ? spring(lnd, 3.0, 5.5) * 0.22 : 0;
+      m.position.set(m.userData.x, y, 0.75);
+      m.scale.set(1 + lsq * 0.5, 1 - lsq, 1 + lsq * 0.5);
+    });
+  }
+
+  // -------------------------
+  // 第 2 幕 渲染（16.0 ~ 32.5s）
+  // -------------------------
+  const s2FadeOut = prog(t, 32.0, 0.6);
+  const s2Active = t >= 16.0 && t < 32.8;
+  s2Group.visible = s2Active;
+  if (s2Active) {
+    s2Group.position.x = -s2FadeOut * 5.0;
+
+    const orbitT = t - 17.5;
+    const collectU = prog(t, 26.5, 0.85);
+    const collectE = eio(collectU);
+
+    // 收納盒落在主角右側前方 (x = 0.95)，絕不擋住標籤文字！
+    binder.visible = t > 26.0;
+    const binderIn = prog(t, 26.0, 0.55);
+    binder.position.set(0.95, lerp(4, 0.9, ebackOut(binderIn)), 0.3);
+    binder.rotation.y = -0.25;
+    binder.scale.setScalar(lerp(0.2, 1, ebackOut(binderIn)));
+
+    tabCards.forEach((c, idx) => {
+      const spawnT = 17.5 + idx * 0.32;
+      if (t < spawnT) { c.visible = false; return; }
+      c.visible = true;
+
+      const angle = (idx / 8) * Math.PI * 2 + orbitT * 0.38 + 0.45;
+      const radius = 2.8;
+      const wave = Math.sin(orbitT * 2.5 + idx * 0.8);
+      const orbitPos = new THREE.Vector3(Math.cos(angle) * radius, 1.25 + wave * 0.15, Math.sin(angle) * radius);
+      const targetPos = new THREE.Vector3(0.95, 0.9, 0.25 - idx * 0.015);
+
+      c.position.lerpVectors(orbitPos, targetPos, collectE);
+      c.rotation.set(wave * 0.08, -angle + Math.PI / 2, Math.cos(orbitT * 2 + idx) * 0.06);
+      c.scale.setScalar(lerp(1, 0.42, collectE));
+      if (collectU >= 1) c.visible = false;
+    });
+  }
+
+  // -------------------------
+  // 第 3 幕 渲染（32.5 ~ 47.5s）
+  // -------------------------
+  const s3FadeOut = prog(t, 46.8, 0.7);
+  const s3Active = t >= 32.5 && t < 47.5;
+  s3Group.visible = s3Active;
+  if (s3Active) {
+    s3Group.position.y = -s3FadeOut * 4.5;
+
+    const cartT = prog(t, 32.5, 3.8);
+    let cartX = lerp(-2.0, 0.3, Math.min(1, cartT * 1.2));
+    if (t >= 36.5) {
+      const cartBounce = spring(t - 36.5, 4.2, 6.0) * 0.12;
+      cartX = 0.3 - cartBounce;
+      const impT = t - 36.5;
+      const inertiaY = impT < 0.35 ? Math.sin((impT / 0.35) * Math.PI) * 0.3 : 0;
+      cartItem.position.set(cartBounce * 0.8, 0.68 + inertiaY, 0);
+      cartItem.rotation.z = -cartBounce * 1.5;
+    }
+    cart.position.set(cartX, 0, 0.2);
+
+    // 金屬門猛然落下 (t = 36.5)
+    gate.visible = t > 36.0;
+    const gateDrop = prog(t, 36.1, 0.35);
+    const gateBounce = t > 36.5 ? spring(t - 36.5, 4.0, 6.0) * 0.2 : 0;
+    gate.position.set(1.4, lerp(6.5, 1.35, gateDrop) + gateBounce, 0.2);
+
+    // 折價券雨飄落 (t = 39.5)
+    const rainT = t - 39.5;
+    couponCards.forEach((cp, idx) => {
+      if (rainT <= 0) { cp.mesh.visible = false; return; }
+      cp.mesh.visible = true;
+      cp.mesh.position.y -= 0.038 * cp.speed;
+      if (cp.mesh.position.y < 0.15) cp.mesh.position.y = 4.5;
+      cp.mesh.rotation.x += 0.03; cp.mesh.rotation.y += 0.02;
+    });
+
+    // 思考問號
+    qMark.visible = t > 38.0 && t < 46.5;
+    if (qMark.visible) {
+      qMark.position.set(-0.2, 1.25, 0.2);
+      qMark.scale.setScalar(1 + Math.sin(t * 8) * 0.15);
+      qMark.lookAt(camera.position);
+    }
+  } else {
+    qMark.visible = false;
+  }
+
+  // -------------------------
+  // 第 4 幕 渲染（47.5 ~ 62.3s）
+  // -------------------------
+  const s4Active = t >= 47.2;
+  s4Group.visible = s4Active;
+  if (s4Active) {
+    // 漏斗落下後過濾，隨即收起
+    funnel.visible = t < 53.5;
+    const fIn = prog(t, 47.5, 0.6);
+    const fOut = prog(t, 51.8, 0.7);
+    const fy = lerp(lerp(6, 0.4, ebackOut(fIn)), 6.5, eio(fOut));
+    funnel.position.set(0, fy, 0);
+
+    // 需求膠囊螺旋旋渦吸入（Vortex Swirl）
+    filterPills.forEach((p, idx) => {
+      const dropT = 49.2 + idx * 0.6;
+      if (t < dropT) { p.visible = false; return; }
+      p.visible = true;
+      const u = prog(t, dropT, 0.65);
+      const swirlAng = u * Math.PI * 4 + idx * 2.1;
+      const swirlRad = (1 - u) * 0.8;
+      p.position.set(Math.cos(swirlAng) * swirlRad, lerp(4.5, 1.6, u), Math.sin(swirlAng) * swirlRad);
+      p.scale.setScalar(lerp(1, 0.2, u));
+      if (u >= 1) p.visible = false;
+    });
+
+    // 3 大頒獎台升起 (t = 52.5)
+    podiums.forEach((pd, idx) => {
+      const riseT = 52.5 + idx * 0.4;
+      if (t < riseT) { pd.g.visible = false; return; }
+      pd.g.visible = true;
+      const ru = prog(t, riseT, 0.55);
+      pd.g.position.y = lerp(-2.5, 0, ebackOut(ru));
+      pd.card.scale.setScalar(lerp(0.1, 1, ebackOut(ru)));
+    });
+
+    // 紙花噴發（Confetti Burst）t = 54.0 開始
+    const confT = t - 54.0;
+    confettiMeshes.forEach((cf, idx) => {
+      if (confT <= 0) { cf.mesh.visible = false; return; }
+      cf.mesh.visible = true;
+      cf.mesh.position.y -= cf.vy;
+      if (cf.mesh.position.y < 0.1) cf.mesh.position.y = 3.5;
+      cf.mesh.rotation.x += cf.rx; cf.mesh.rotation.y += cf.ry;
+    });
+  }
+
+  // ==========================================
+  // 主角演技與表情系統（皮克斯純圓角方塊動態）
+  // ==========================================
+  {
+    const breathe = 1 + Math.sin(t * 2.8) * 0.015;
+    let hx = -1.5, hy = 0, hz = 0.15, ry = 0.15, rx = 0, rz = 0;
+    let scaleX = 1, scaleY = 1, scaleZ = 1;
+    let surprised = false, smiling = true, dizzy = false, skeptical = false, wink = false;
+
+    // 視線目標
+    let gazeTgt = new THREE.Vector3(0, 1.5, 8.0);
+
+    if (t < 16.0) {
+      // ---------- 第 1 幕 表演 ----------
+      if (t < 2.2) {
+        gazeTgt.set(1.45, 4.0, -0.35);
+        browL.rotation.z = 0.25; browR.rotation.z = -0.25;
+        surprised = t > 1.2;
+        // 驚恐下蹲縮緊
+        if (t > 1.2) { scaleY = 0.85; scaleX = 1.1; scaleZ = 1.1; }
+      } else if (t < 7.6) {
+        surprised = true;
+        gazeTgt.set(-1.5 + Math.sin(t * 20) * 1.5, 1.0, 1.0);
+        hx += Math.sin(t * 30) * 0.03;
+        browL.rotation.z = 0.4; browR.rotation.z = -0.4;
+      } else if (t < 11.5) {
+        const hop = t - 7.6;
+        hy = hop > 0 && hop < 0.6 ? Math.sin((Math.PI * hop) / 0.6) * 1.15 : 0;
+        gazeTgt.set(-0.55, 0.62, 0.45);
+        smiling = true;
+      } else {
+        gazeTgt.set(0.5, 0.5, 0.75);
+        smiling = true;
+      }
+    } else if (t < 32.5) {
+      // ---------- 第 2 幕 表演 ----------
+      const jumpU = prog(t, 16.0, 0.9);
+      if (jumpU < 1) {
+        hx = lerp(-1.5, 0.0, eio(jumpU));
+        hy = Math.sin(jumpU * Math.PI) * 1.4;
+        rz = jumpU * Math.PI * 2; // 360 度歡樂空翻
+      } else {
+        hx = 0.0; hy = 0.0; rz = 0;
+        if (t < 26.5) {
+          const trackAngle = (t - 17.5) * 0.38 + 0.45;
+          gazeTgt.set(Math.cos(trackAngle) * 2.5, 1.3, Math.sin(trackAngle) * 2.5);
+          ry = Math.sin(t * 3.5) * 0.45;
+          dizzy = t > 20.0;
+          if (dizzy) {
+            rx = Math.sin(t * 5.0) * 0.12;
+            rz = Math.cos(t * 5.0) * 0.12; // 頭部暈陀陀擺動
+          }
+        } else {
+          gazeTgt.set(0.95, 0.9, 0.3);
+          ry = 0.3;
+          smiling = true;
+        }
+      }
+    } else if (t < 47.5) {
+      // ---------- 第 3 幕 表演 ----------
+      const cartT = prog(t, 32.5, 3.8);
+      const cartX = lerp(-2.0, 0.3, Math.min(1, cartT * 1.2));
+      
+      if (t < 36.5) {
+        // 開心推車：人永遠在推車後方 (cartX - 0.95)，絕對不穿模！
+        hx = cartX - 0.95; hy = Math.abs(Math.sin(t * 8)) * 0.06; // 腳步踩踏彈跳
+        rx = 0.12; // 前傾推車
+        gazeTgt.set(cartX + 1.2, 0.5, 0.2);
+        smiling = true;
+      } else {
+        // 撞牆後座力：人被撞彈回坐倒在地上！
+        const bonkT = t - 36.5;
+        const bonkDist = spring(bonkT, 3.6, 5.0) * 0.45;
+        hx = 0.3 - 0.95 - 0.5 - bonkDist;
+        hy = bonkT < 0.2 ? Math.sin((bonkT / 0.2) * Math.PI) * 0.25 : 0;
+        rz = -0.28; // 屁股跌坐微後傾
+        surprised = bonkT < 2.5;
+        skeptical = bonkT >= 2.5;
+        
+        if (t < 40.0) {
+          gazeTgt.set(1.4, 1.8, 0.2);
+          browL.rotation.z = 0.45; browR.rotation.z = -0.45;
+        } else {
+          gazeTgt.set(hx + 0.5, 0.5 + Math.sin(t * 2) * 0.4, 0.2);
+          browL.rotation.z = -0.3; browR.rotation.z = 0.2; // 挑眉懷疑
+        }
+      }
+    } else {
+      // ---------- 第 4 幕 表演 ----------
+      hx = -2.1; hy = 0; hz = 0.25; ry = 0.25;
+      if (t < 52.0) {
+        gazeTgt.set(0, 2.5, 0);
+      } else if (t < 56.0) {
+        gazeTgt.set(0, 1.2, 0);
+        smiling = true;
+      } else {
+        gazeTgt.set(-0.4, 1.5, 5.8);
+        smiling = true;
+        wink = t > 58.0 && t < 59.2;
+        // 得意挺胸擺動
+        scaleY = 1.05 + Math.sin(t * 3) * 0.03;
+        scaleX = 0.96;
+      }
+    }
+
+    hero.position.set(hx, hy, hz);
+    hero.rotation.set(rx, ry, rz);
+    heroBody.scale.set(breathe * scaleX, breathe * scaleY, breathe * scaleZ);
+
+    // 執行眼球視線追蹤
+    setGaze(gazeTgt);
+
+    // 表情切換
+    dizzyEyes.visible = dizzy;
+    socketL.visible = !dizzy; socketR.visible = !dizzy;
+    if (wink) { socketL.scale.y = 0.15; socketR.scale.y = 1.0; }
+    else if (!dizzy) { socketL.scale.y = socketR.scale.y = (Math.sin(t * 4.5) > 0.96 ? 0.2 : 1.0); }
+
+    oMouth.visible = surprised && !dizzy;
+    smile.visible = smiling && !surprised && !dizzy;
+    straightMouth.visible = skeptical || dizzy;
+  }
+
+  renderer.render(scene, camera);
+
+  // -------------------------
+  // UI 標籤與字幕切換
+  // -------------------------
+  const chap = document.getElementById("chapter");
+  if (t < 16.0) {
+    chap.innerHTML = '<span class="num">1</span> 破題：五百億筆商品';
+  } else if (t < 32.5) {
+    chap.innerHTML = '<span class="num">2</span> 痛點：十個分頁 vs 磁吸收合';
+  } else if (t < 47.5) {
+    chap.innerHTML = '<span class="num">3</span> 盲區：登入牆與折價券黑箱';
+  } else {
+    chap.innerHTML = '<span class="num">4</span> 定位：規格初篩特助';
+  }
+
+  const sub = document.getElementById("sub");
+  const cue = C.find((c) => t >= c.start - 0.05 && t <= c.end + 0.25);
+  sub.style.opacity = cue ? 1 : 0;
+  if (cue && sub.textContent !== cue.text) sub.textContent = cue.text;
+}
+
+window.__total = TOTAL;
+window.__seekTo = (t) => renderAt(Math.max(0, Math.min(TOTAL - 1e-3, t)));
+renderAt(0);
+window.__ready = true;
+</script>
+</body>
+</html>
