@@ -1,84 +1,82 @@
 # 3D 黏土定格動畫風格規格契約 (Clay Stop-Motion Design Tokens)
 # 本檔為全專案美術視覺與物理參數的單一真相來源 (Single Source of Truth)
-version: "1.1.0"
+version: "1.2.0"
 name: "puti-clay-stopmotion"
 
 palette:
   hero:
-    clay_orange: "#c65322"       # 小橘人主體啞光熟成焦糖黏土
-    clay_orange_shadow: "#963810"# 陰影修邊
-    eyes: "#1a233a"              # 黏土黑豆眼
-    mouth: "#1a233a"             # 弧形微凹嘴唇
+    clay_orange: "#c65322"       # [已接線] 小橘人主體啞光熟成焦糖黏土
+    clay_orange_shadow: "#963810"# [已接線] 陰影修邊
+    eyes: "#1a233a"              # [已接線] 黏土黑豆眼
+    mouth: "#1a233a"             # [已接線] 弧形微凹嘴唇
   environment:
-    ground: "#eae5db"            # 原片同款溫潤象牙米灰地面
-    stage_bg: "#eae5db"          # 攝影棚淡雅漫射背景
-    contact_shadow: "rgba(26, 35, 58, 0.22)" # 接地接觸陰影 (Contact AO)
+    ground: "#eae5db"            # [已接線] 原片同款溫潤象牙米灰地面
+    stage_bg: "#eae5db"          # [已接線] 攝影棚淡雅漫射背景
+    contact_shadow: "rgba(16, 12, 8, 0.78)" # [已接線] 接地接觸陰影核心色彩
   ui_cards:
-    surface: "#ffffff"           # 雙層雙面卡片主色
-    border: "rgba(0, 0, 0, 0.06)"# 倒角卡片微邊緣
-    badge_gold: "#fbbf24"        # 推薦徽章金
-    badge_emerald: "#34d399"     # 評分綠
-    text_primary: "#1a233a"      # 大標主字
-    text_secondary: "#64748b"    # 次標副字
+    surface: "#ffffff"           # [設計規範參考，寫於 scene.html 紋理生成] 雙層雙面卡片主色
+    border: "rgba(0, 0, 0, 0.06)"# [設計規範參考] 倒角卡片微邊緣
+    badge_gold: "#fbbf24"        # [設計規範參考] 推薦徽章金
+    badge_emerald: "#34d399"     # [設計規範參考] 評分綠
+    text_primary: "#1a233a"      # [設計規範參考] 大標主字
+    text_secondary: "#64748b"    # [設計規範參考] 次標副字
 
 materials:
   clay_body:
     type: "MeshStandardMaterial"
-    roughness: 0.82              # 啞光高漫射揉捏感
-    metalness: 0.00              # 極低金屬感
-    bump_scale: 0.0025           # 程序化微噪點凹凸
+    roughness: 0.82              # [已接線] 啞光高漫射揉捏感
+    metalness: 0.00              # [已接線] 極低金屬感
+    bump_scale: 0.0025           # [已接線] 程序化微噪點凹凸
   clay_ground:
     type: "MeshStandardMaterial"
-    roughness: 0.95
+    roughness: 0.95              # [已接線] 地面粗糙度
     metalness: 0.00
     receive_shadow: true
   clay_card:
     type: "MeshStandardMaterial"
-    roughness: 0.45
+    roughness: 0.45              # [已接線] 卡片粗糙度
     metalness: 0.05
-    bevel_segments: 4
+    bevel_segments: 4            # [已接線] RoundedBoxGeometry 倒角細分數
     bevel_radius: 0.08
 
 lighting:
   hemisphere:
-    sky_color: "#fffaed"         # 天空暖白
-    ground_color: "#d2c8b8"      # 地面溫暖漫射
-    intensity: 1.0
+    sky_color: "#fffaed"         # [已接線] 天空暖白
+    ground_color: "#d2c8b8"      # [已接線] 地面溫暖漫射
+    intensity: 1.0               # [已接線]
   key_light:
     type: "DirectionalLight"
-    color: "#fff5e4"             # 暖金主光
-    intensity: 1.85
-    position: [5.5, 9.5, 7.5]
+    color: "#fff5e4"             # [已接線] 暖金主光
+    intensity: 1.85              # [已接線]
+    position: [5.5, 9.5, 7.5]   # [已接線]
     cast_shadow: true
     shadow_map_size: 2048
     shadow_bias: -0.0003
     shadow_radius: 3.5
   fill_light:
     type: "DirectionalLight"
-    color: "#9db8eb"             # 冷藍天光（暗部補光）
-    intensity: 0.85
-    position: [-6, 7, -4]
+    color: "#9db8eb"             # [已接線] 冷藍天光（暗部補光）
+    intensity: 0.85              # [已接線]
+    position: [-6, 7, -4]        # [已接線]
 
 camera:
-  fov_16_9: 28                   # 16:9 電影級 50mm 窄角長焦鏡頭，去除透視畸變
-  fov_9_16: 56                   # 9:16 直式適配視角（包含兩側浮動卡片與頒獎台）
+  fov_16_9: 28                   # [已接線] 16:9 電影級 50mm 窄角長焦鏡頭
+  fov_9_16: 46                   # [已接線] 9:16 直式適配視角（主體飽滿，消除邊緣切割與上下過度留白）
   near: 0.1
   far: 100
 
 typography:
   headline:
     font_family: "jf-openhuninn"
-    path: "fonts/huninn.ttf"
-    license: "OFL-1.1 (Open Font License, Commercial Friendly)"
-    role: "主標題、關鍵字卡、數字強調"
+    path: "fonts/huninn.ttf"     # [已接線] @font-face 標題粉圓體
+    license: "OFL-1.1"
   body:
     font_family: "Noto Sans TC"
-    path: "fonts/NotoSansTC-VF.ttf"
+    path: "fonts/NotoSansTC-VF.ttf" # [已接線] @font-face 內文思源黑體
     license: "OFL-1.1"
-    role: "副標題、規格對照清單、表格數值"
 
 motion_physics:
-  framerate_sim: 12              # 定格動畫步進頻率
+  framerate_sim: 12              # [設計規範參考，動畫由純函數連續時間驅動]
   squash_stretch:
     anticipation_scale: [1.25, 0.75, 1.25]
     flight_scale: [0.85, 1.25, 0.85]
