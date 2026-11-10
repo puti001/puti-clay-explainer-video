@@ -23,15 +23,16 @@
 
 4. **100% 程序化安全音效與配樂 (Procedural Audio & BGM)**
    - 內建純數學正弦泛音合成器 (`synth_sfx.py`)，自動產生水晶叮、木質咚、金牌揭曉鏘、卡通彈跳蹦。
+   - 所有音效時間軸與音量由 [`sfx.json`](sfx.json) 完全資料驅動，消滅程式碼魔法數字。
    - 內建溫潤的 **卡林巴琴 (Kalimba) C 大調五度進行背景音樂**，零版權風險、免外部依賴。
 
-5. **自動字幕與雙比例輸出**
+5. **自動字幕與雙比例響應式輸出**
    - 支援從 `cues.json` 一鍵匯出符合工業標準的 `subtitles.srt` 與 `subtitles.vtt`。
-   - 支援 16:9 橫式（1920x1080）與 9:16 直式（1080x1920）動態攝影機視角切換。
+   - 支援 16:9 橫式（1920x1080）與 9:16 直式（1080x1920）動態攝影機視角與 UI 自動重排。
 
 6. **Playwright 1080p 逐幀管道離線渲染**
    - 透過 Playwright 啟動 Headless Chrome 逐格繪製 Canvas，直通管道餵給 FFmpeg 進行 H.264 編碼。
-   - 實測每秒渲染 21~25 fps，60 秒全片約 75 秒即可無損壓制出 1080p 廣播級 MP4。
+   - 預設 30fps 廣播級渲染（可選 `--fps 60`），60 秒全片約 75 秒即可無損壓制出 1080p 高清 MP4。
 
 ---
 
@@ -39,16 +40,19 @@
 
 ```text
 puti-clay-explainer-video/
-├── build.py                  # 統一參數化主構建管線 (--check, --audio, --subtitles, --render)
+├── build.py                  # 統一參數化主構建管線 (--check, --style, --audio, --subtitles, --render)
+├── compile_style.py          # 將 style.yaml 編譯為 scene.html 讀取的 style.js
 ├── render_video.py           # Playwright 逐幀管道流渲染腳本
 ├── synth_sfx.py              # 100% 程序化數學音效與 Kalimba BGM 合成器
-├── mix_audio.py              # 廣播級 EBU R128 (-14 LUFS) 響度多軌自動混音器
+├── mix_audio.py              # 讀取 sfx.json 與 cues.json 進行 EBU R128 (-14 LUFS) 多軌混音
 ├── tts.py                    # 旁白語音生成與時間軸校正
 ├── export_subtitles.py       # 自動產生 SRT / VTT 字幕檔
-├── scene.html                # 核心 Three.js 3D 黏土定格動畫互動舞台
+├── scene.html                # 核心 Three.js 3D 黏土定格動畫互動舞台 (支援 16:9 / 9:16)
 ├── index.html                # 進入點與導覽頁
-├── cues.json                 # 時間軸分鏡、文案對齊與動作節拍標記
-├── style.yaml                # 黏土風格視覺規格契約 (Design Tokens)
+├── cues.json                 # 旁白時間軸分鏡與文案資料
+├── sfx.json                  # 音效對位與音量資料契約
+├── style.yaml                # 黏土風格視覺規格契約 (Single Source of Truth)
+├── style.js                  # 編譯後的風格設定 (供 scene.html 載入)
 ├── requirements.txt          # Python 依賴清單
 ├── package.json              # Playwright / Three.js 依賴定義
 ├── audio/                    # 自動合成的旁白、音效與 BGM
@@ -81,13 +85,14 @@ python build.py --check
 ### 3. 一鍵完整構建與渲染
 
 ```bash
-# 執行完整管線：合成音訊 -> 匯出字幕 -> Playwright 離線渲染 1080p MP4
+# 執行完整管線：編譯風格 -> 合成音訊 -> 匯出字幕 -> Playwright 離線渲染 1080p MP4
 python build.py --all
 
 # 或分步執行：
-python build.py --audio      # 合成音效與 BGM 混音
+python build.py --style      # 編譯 style.yaml -> style.js
+python build.py --audio      # 由 sfx.json 與 cues.json 合成音效與 BGM 混音
 python build.py --subtitles  # 產生 subtitles.srt 與 subtitles.vtt
-python build.py --render     # 渲染橫式 16:9 (1920x1080)
+python build.py --render     # 渲染橫式 16:9 (1920x1080, 預設 30fps)
 python build.py --render --aspect 9:16  # 渲染直式 9:16 (1080x1920)
 ```
 
@@ -98,7 +103,9 @@ python build.py --render --aspect 9:16  # 渲染直式 9:16 (1080x1920)
 ```bash
 python -m http.server 8000
 ```
-瀏覽器訪問：`http://localhost:8000/scene.html`
+瀏覽器訪問：
+- 橫式：`http://localhost:8000/scene.html`
+- 直式：`http://localhost:8000/scene.html?aspect=9:16`
 
 - 拖曳滑鼠：360 度環視 3D 黏土角色與場景。
 - 空白鍵：播放 / 暫停。
@@ -108,11 +115,13 @@ python -m http.server 8000
 
 ## 🎨 視覺規格契約 (`style.yaml`)
 
-本專案將黏土材質的所有核心物理與視覺參數固化於 `style.yaml`，確保不同分鏡與影片具備嚴格一致的美術調性：
-- **小橘人色碼**：`#f97316`（底光搭配 `#ea580c` 陰影修邊）
-- **材質粗糙度 (Roughness)**：`0.88`（啞光非金屬）
-- **程序微噪點 (Bump Scale)**：`0.0025`
-- **相機視角 (FOV)**：`38`（仿 50mm 微距鏡頭）
+本專案將黏土材質的所有核心物理與視覺參數固化於 `style.yaml`，作為全專案的單一真相來源：
+- **小橘人主色**：`#c65322`（啞光熟成焦糖黏土，陰影修邊 `#963810`）
+- **地面與背景**：`#eae5db`（原片同款溫潤象牙米灰）
+- **材質粗糙度 (Roughness)**：角色 `0.82`、地面 `0.95`
+- **相機視角 (FOV)**：16:9 電影長焦為 `28`；9:16 直式適配為 `56`
+- **雙色溫棚拍燈光**：暖金主光（1.85 / `#fff5e4`）+ 冷藍天光（0.85 / `#9db8eb`）
+- **標準字型**：標題使用粉圓體 (`huninn.ttf`)、內文使用思源黑體 (`NotoSansTC-VF.ttf`)。
 - **標準字型**：標題使用粉圓體 (`huninn.ttf`)、內文使用思源黑體 (`NotoSansTC-VF.ttf`)。
 
 ---

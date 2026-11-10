@@ -1,83 +1,99 @@
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 AUDIO_DIR = BASE_DIR / "audio"
 CUES_PATH = BASE_DIR / "cues.json"
+SFX_PATH = BASE_DIR / "sfx.json"
 BGM_PATH = AUDIO_DIR / "bgm_kalimba.wav"
 OUTPUT_PATH = AUDIO_DIR / "master_norm.mp3"
 
-with open(CUES_PATH, "r", encoding="utf-8") as f:
-    data = json.load(f)
+def mix():
+    if not CUES_PATH.exists():
+        print(f"Error: {CUES_PATH} not found.", file=sys.stderr)
+        sys.exit(1)
+        
+    with open(CUES_PATH, "r", encoding="utf-8") as f:
+        cues_data = json.load(f)
 
-cues = data["cues"]
-total_dur = data["total"]
+    cues = cues_data["cues"]
+    total_dur = cues_data["total"]
 
-# 1. 旁白軌道 (0..12)
-inputs = [AUDIO_DIR / f"{c['id']}.mp3" for c in cues]
+    sfx_list = []
+    if SFX_PATH.exists():
+        with open(SFX_PATH, "r", encoding="utf-8") as f:
+            sfx_list = json.load(f)
 
-# 2. 程序化 SFX (13..16)
-inputs += [
-    AUDIO_DIR / "sfx_boing.wav",   # 13: 卡通彈跳
-    AUDIO_DIR / "sfx_ding.wav",    # 14: 水晶叮
-    AUDIO_DIR / "sfx_dong.wav",    # 15: 溫潤咚
-    AUDIO_DIR / "sfx_chiang.wav",  # 16: 璀璨金牌鏘
-    BGM_PATH                       # 17: 程序化 Kalimba BGM
-]
+    # 建立輸入列表
+    # 1. 旁白軌道 (0..len(cues)-1)
+    inputs = [AUDIO_DIR / f"{c['id']}.mp3" for c in cues]
+    
+    # 2. SFX 軌道
+    sfx_start_idx = len(inputs)
+    for item in sfx_list:
+        inputs.append(AUDIO_DIR / item["file"])
+        
+    # 3. BGM 軌道 (最後一個輸入)
+    bgm_idx = len(inputs)
+    inputs.append(BGM_PATH)
 
-filter_complex = []
+    filter_complex = []
 
-# 旁白延遲與對齊
-for i, c in enumerate(cues):
-    ms = int(c["start"] * 1000)
-    filter_complex.append(f"[{i}:a]adelay={ms}|{ms},volume=1.35[v{i}];")
+    # 1. 處理旁白：延遲對齊 (adelay)
+    vo_outputs = []
+    for i, c in enumerate(cues):
+        ms = int(round(c["start"] * 1000))
+        out_lbl = f"v{i}"
+        filter_complex.append(f"[{i}:a]adelay={ms}|{ms},volume=1.35[{out_lbl}];")
+        vo_outputs.append(f"[{out_lbl}]")
 
-# 音效精準對位
-# 彈跳 boing (2.4s, 14.5s)
-filter_complex.append("[13:a]asplit=2[boing1][boing2];")
-filter_complex.append("[boing1]adelay=2400|2400,volume=1.2[s_boing1];")
-filter_complex.append("[boing2]adelay=14500|14500,volume=1.2[s_boing2];")
+    # 2. 處理音效：由 sfx.json 資料驅動延遲與音量
+    sfx_outputs = []
+    for idx, item in enumerate(sfx_list):
+        in_idx = sfx_start_idx + idx
+        ms = int(round(item["time"] * 1000))
+        vol = item.get("vol", 1.0)
+        out_lbl = f"sfx_{idx}"
+        filter_complex.append(f"[{in_idx}:a]adelay={ms}|{ms},volume={vol:.2f}[{out_lbl}];")
+        sfx_outputs.append(f"[{out_lbl}]")
 
-# 叮 ding (8.5s, 31.8s)
-filter_complex.append("[14:a]asplit=2[ding1][ding2];")
-filter_complex.append("[ding1]adelay=8500|8500,volume=1.1[s_ding1];")
-filter_complex.append("[ding2]adelay=31800|31800,volume=1.1[s_ding2];")
+    # 3. 處理 BGM：淡入淡出與音量平衡
+    filter_complex.append(
+        f"[{bgm_idx}:a]volume=0.22,afade=t=in:st=0:d=1.5,afade=t=out:st={total_dur-2.5:.2f}:d=2.5[bgm];"
+    )
 
-# 咚 dong (10.2s, 34.0s)
-filter_complex.append("[15:a]asplit=2[dong1][dong2];")
-filter_complex.append("[dong1]adelay=10200|10200,volume=1.0[s_dong1];")
-filter_complex.append("[dong2]adelay=34000|34000,volume=1.0[s_dong2];")
+    # 4. 總混音 (旁白 + 音效 + BGM)
+    all_tracks = vo_outputs + sfx_outputs + ["[bgm]"]
+    total_tracks_count = len(all_tracks)
+    inputs_concat = "".join(all_tracks)
+    filter_complex.append(
+        f"{inputs_concat}amix=inputs={total_tracks_count}:duration=longest:dropout_transition=2[mixed];"
+    )
+    # 廣播級 EBU R128 (-14 LUFS) 響度正規化
+    filter_complex.append("[mixed]loudnorm=I=-14:TP=-1.5:LRA=11[out]")
 
-# 鏘 chiang (50.5s - 第一名卡片高潮揭曉)
-filter_complex.append("[16:a]adelay=50500|50500,volume=1.3[s_chiang];")
+    cmd = ["ffmpeg", "-y"]
+    for inp in inputs:
+        cmd.extend(["-i", str(inp)])
 
-# BGM 側鏈避讓 (Ducking) 與淡入淡出
-filter_complex.append(f"[17:a]volume=0.22,afade=t=in:st=0:d=1.5,afade=t=out:st={total_dur-2.5}:d=2.5[bgm];")
+    cmd.extend([
+        "-filter_complex", "".join(filter_complex),
+        "-map", "[out]",
+        "-c:a", "libmp3lame",
+        "-b:a", "192k",
+        "-t", str(total_dur + 0.5),
+        str(OUTPUT_PATH)
+    ])
 
-# 總混音 (13 軌旁白 + 7 處音效 + 1 軌 BGM)
-mix_inputs = "".join([f"[v{i}]" for i in range(len(cues))]) + "[s_boing1][s_boing2][s_ding1][s_ding2][s_dong1][s_dong2][s_chiang][bgm]"
-total_tracks = len(cues) + 7 + 1
-filter_complex.append(f"{mix_inputs}amix=inputs={total_tracks}:duration=longest:dropout_transition=2[mixed];")
-# 響度正規化 (EBU R128 -14 LUFS)
-filter_complex.append("[mixed]loudnorm=I=-14:TP=-1.5:LRA=11[out]")
+    print(f"Mixing {len(cues)} VO tracks, {len(sfx_list)} SFX tracks, and 1 BGM track...")
+    res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if res.returncode == 0:
+        print(f"Master Audio successfully generated: {OUTPUT_PATH}")
+    else:
+        print("FFmpeg error:", res.stderr.decode('utf-8', errors='ignore'), file=sys.stderr)
+        sys.exit(res.returncode)
 
-cmd = ["ffmpeg", "-y"]
-for inp in inputs:
-    cmd.extend(["-i", str(inp)])
-
-cmd.extend([
-    "-filter_complex", "".join(filter_complex),
-    "-map", "[out]",
-    "-c:a", "libmp3lame",
-    "-b:a", "192k",
-    "-t", str(total_dur + 0.5),
-    str(OUTPUT_PATH)
-])
-
-print("Running pure local mix...")
-res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-if res.returncode == 0:
-    print(f"Master Audio successfully generated: {OUTPUT_PATH}")
-else:
-    print("FFmpeg error:", res.stderr.decode('utf-8', errors='ignore'))
+if __name__ == "__main__":
+    mix()

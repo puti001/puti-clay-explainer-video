@@ -1,0 +1,51 @@
+[
+  {
+    "id": "s_boing_1",
+    "file": "sfx_boing.wav",
+    "time": 2.4,
+    "vol": 1.2,
+    "desc": "第 1 幕：小橘人起跳壓扁回彈"
+  },
+  {
+    "id": "s_ding_1",
+    "file": "sfx_ding.wav",
+    "time": 8.5,
+    "vol": 1.1,
+    "desc": "第 1 幕：比較表水晶叮提點"
+  },
+  {
+    "id": "s_dong_1",
+    "file": "sfx_dong.wav",
+    "time": 10.2,
+    "vol": 1.0,
+    "desc": "第 1 幕：木質溫潤咚確認"
+  },
+  {
+    "id": "s_boing_2",
+    "file": "sfx_boing.wav",
+    "time": 14.5,
+    "vol": 1.2,
+    "desc": "第 2 幕：切換過場飛躍"
+  },
+  {
+    "id": "s_ding_2",
+    "file": "sfx_ding.wav",
+    "time": 31.8,
+    "vol": 1.1,
+    "desc": "第 2 幕：活頁夾卡片展開"
+  },
+  {
+    "id": "s_dong_2",
+    "file": "sfx_dong.wav",
+    "time": 34.0,
+    "vol": 1.0,
+    "desc": "第 3 幕：規格門檔定位"
+  },
+  {
+    "id": "s_chiang_1",
+    "file": "sfx_chiang.wav",
+    "time": 50.5,
+    "vol": 1.3,
+    "desc": "第 4 幕：冠軍卡片頒獎揭曉璀璨金鈴"
+  }
+]

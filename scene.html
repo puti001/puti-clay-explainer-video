@@ -44,7 +44,23 @@
     letter-spacing: 0.5px; white-space: nowrap;
   }
   #puti-footer a { color: #c85624; text-decoration: underline; font-weight: 700; margin-left: 4px; }
+
+  /* 9:16 直式排版優化 */
+  body.vertical #chapter {
+    top: 64px; left: 50%; transform: translateX(-50%);
+    font-size: 24px; padding: 12px 24px; white-space: nowrap;
+  }
+  body.vertical #sub {
+    bottom: 120px; font-size: 32px; max-width: 90%;
+    white-space: normal; line-height: 1.4; padding: 14px 28px;
+  }
+  body.vertical #puti-footer {
+    bottom: 24px; font-size: 11px; max-width: 90%;
+    text-align: center; white-space: normal; line-height: 1.4;
+  }
 </style>
+
+<script src="style.js"></script>
 
 <script type="importmap">
 {
@@ -92,13 +108,42 @@ function rng(seed) {
 }
 
 // ==========================================
+// 讀取設計規範契約 (style.yaml -> style.js) 與視圖模式
+// ==========================================
+const S = window.CLAY_STYLE || {
+  palette: {
+    hero: { clay_orange: "#c65322" },
+    environment: { ground: "#eae5db", stage_bg: "#eae5db" }
+  },
+  lighting: {
+    hemisphere: { sky_color: "#fffaed", ground_color: "#d2c8b8", intensity: 1.0 },
+    key_light: { color: "#fff5e4", intensity: 1.85, position: [5.5, 9.5, 7.5] },
+    fill_light: { color: "#9db8eb", intensity: 0.85, position: [-6, 7, -4] }
+  },
+  materials: {
+    clay_body: { roughness: 0.82 },
+    clay_ground: { roughness: 0.95 }
+  },
+  camera: { fov_16_9: 28, fov_9_16: 56 }
+};
+
+const urlParams = new URLSearchParams(window.location.search);
+const isVertical = urlParams.get('aspect') === '9:16' || (window.innerWidth < window.innerHeight);
+if (isVertical) {
+  document.body.classList.add('vertical');
+}
+
+// ==========================================
 // 渲染器與攝影機（電影級棚拍設定）
 // ==========================================
-const W = 1920, H = 1080;
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xeae5db); // 原片同款溫潤象牙米灰
+const W = isVertical ? 1080 : 1920;
+const H = isVertical ? 1920 : 1080;
+const fov = isVertical ? (S.camera?.fov_9_16 || 56) : (S.camera?.fov_16_9 || 28);
 
-const camera = new THREE.PerspectiveCamera(28, W / H, 0.1, 100);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(S.palette.environment.stage_bg);
+
+const camera = new THREE.PerspectiveCamera(fov, W / H, 0.1, 100);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
 renderer.setSize(W, H);
 renderer.setPixelRatio(1);
@@ -113,11 +158,18 @@ document.getElementById("canvas-container").appendChild(renderer.domElement);
 // ==========================================
 // 雙色溫棚拍燈光系統（暖金主光 + 冷天光漫反射）
 // ==========================================
-const hemi = new THREE.HemisphereLight(0xfffaed, 0xd2c8b8, 1.0);
+const hemi = new THREE.HemisphereLight(
+  S.lighting.hemisphere.sky_color,
+  S.lighting.hemisphere.ground_color,
+  S.lighting.hemisphere.intensity
+);
 scene.add(hemi);
 
-const dir1 = new THREE.DirectionalLight(0xfff5e4, 1.85); // 暖金主光
-dir1.position.set(5.5, 9.5, 7.5);
+const dir1 = new THREE.DirectionalLight(
+  S.lighting.key_light.color,
+  S.lighting.key_light.intensity
+);
+dir1.position.set(...S.lighting.key_light.position);
 dir1.castShadow = true;
 dir1.shadow.mapSize.width = 2048;
 dir1.shadow.mapSize.height = 2048;
@@ -131,8 +183,11 @@ dir1.shadow.bias = -0.0003;
 dir1.shadow.radius = 3.5;
 scene.add(dir1);
 
-const dir2 = new THREE.DirectionalLight(0x9db8eb, 0.85); // 冷藍天光（暗部補光）
-dir2.position.set(-6, 7, -4);
+const dir2 = new THREE.DirectionalLight(
+  S.lighting.fill_light.color,
+  S.lighting.fill_light.intensity
+);
+dir2.position.set(...S.lighting.fill_light.position);
 scene.add(dir2);
 
 // ==========================================
@@ -171,7 +226,11 @@ function createContactShadowMesh(w, h, opacity = 0.8) {
 // 攝影棚無縫底板
 const cyclorama = new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
-  new THREE.MeshStandardMaterial({ color: 0xeae5db, roughness: 0.95, metalness: 0.0 })
+  new THREE.MeshStandardMaterial({
+    color: new THREE.Color(S.palette.environment.ground),
+    roughness: S.materials.clay_ground.roughness,
+    metalness: 0.0
+  })
 );
 cyclorama.rotation.x = -Math.PI / 2;
 cyclorama.receiveShadow = true;
@@ -181,7 +240,11 @@ scene.add(cyclorama);
 // 原片同款包浩斯深邃色票（M）
 // ==========================================
 const M = {
-  orange:       new THREE.MeshStandardMaterial({ color: 0xc65322, roughness: 0.82, metalness: 0.0 }),  // 啞光熟成焦糖黏土
+  orange:       new THREE.MeshStandardMaterial({
+    color: new THREE.Color(S.palette.hero.clay_orange),
+    roughness: S.materials.clay_body.roughness,
+    metalness: 0.0
+  }),  // 啞光熟成焦糖黏土
   navy:         new THREE.MeshStandardMaterial({ color: 0x152038, roughness: 0.75, metalness: 0.02 }), // 啞光深海軍藍
   navyText:     new THREE.MeshStandardMaterial({ color: 0x16223c, roughness: 0.65, metalness: 0.02 }),
   card:         new THREE.MeshStandardMaterial({ color: 0xb8884c, roughness: 0.88, metalness: 0.0 }),  // 啞光厚牛皮紙板
@@ -700,6 +763,11 @@ function camAt(t) {
   const [t0, p0, l0] = K[i], [t1, p1, l1] = K[i + 1];
   const u = eio(prog(t, t0, t1 - t0));
   const p = v3(p0).lerp(v3(p1), u), l = v3(l0).lerp(v3(l1), u);
+  if (isVertical) {
+    p.z *= 1.35;
+    p.y += 0.45;
+    l.y += 0.20;
+  }
   camera.position.copy(p); camera.lookAt(l);
 }
 
