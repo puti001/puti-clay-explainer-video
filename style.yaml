@@ -1,0 +1,87 @@
+# 3D 黏土定格動畫風格規格契約 (Clay Stop-Motion Design Tokens)
+version: "1.0.0"
+name: "puti-clay-stopmotion"
+
+palette:
+  hero:
+    clay_orange: "#f97316"       # 小橘人主體 (HSL 25, 95%, 53%)
+    clay_orange_dark: "#ea580c"  # 陰影修邊 (HSL 24, 94%, 48%)
+    eyes: "#1e293b"              # 黏土黑豆眼
+    mouth: "#1e293b"             # 弧形微凹嘴唇
+  environment:
+    ground: "#f1f5f9"            # 淺灰黏土基底
+    stage_bg: "#f8fafc"          # 攝影棚淡雅漫射背景
+    contact_shadow: "rgba(15, 23, 42, 0.18)" # 接地接觸陰影 (Contact AO)
+  ui_cards:
+    surface: "#ffffff"           # 雙層雙面卡片主色
+    border: "#e2e8f0"            # 倒角卡片微邊緣
+    badge_gold: "#fbbf24"        # 推薦徽章金
+    badge_emerald: "#34d399"     # 評分綠
+    text_primary: "#0f172a"      # 大標主字
+    text_secondary: "#64748b"    # 次標副字
+
+materials:
+  clay_body:
+    type: "MeshStandardMaterial"
+    roughness: 0.88              # 啞光高漫射揉捏感
+    metalness: 0.02              # 極低反射
+    bump_scale: 0.0025           # 程序化微噪點凹凸 (Procedural Noise)
+    flat_shading: false
+  clay_ground:
+    type: "MeshStandardMaterial"
+    roughness: 0.95
+    metalness: 0.00
+    receive_shadow: true
+  clay_card:
+    type: "MeshStandardMaterial"
+    roughness: 0.45
+    metalness: 0.05
+    bevel_segments: 4            # RoundedBoxGeometry 倒角細分數
+    bevel_radius: 0.08
+
+lighting:
+  ambient:
+    color: "#ffffff"
+    intensity: 0.85
+  key_light:
+    type: "DirectionalLight"
+    color: "#fffbeb"             # 暖白頂側主光
+    intensity: 1.6
+    position: [6, 12, 8]
+    cast_shadow: true
+    shadow_map_size: 2048
+    shadow_bias: -0.0001
+  fill_light:
+    type: "DirectionalLight"
+    color: "#f0fdf4"             # 柔和冷綠側補光
+    intensity: 0.45
+    position: [-8, 6, -4]
+
+camera:
+  fov: 38                        # 仿 50mm 微距人像鏡頭，避免廣角透視畸變
+  near: 0.1
+  far: 100
+  default_position: [0, 4.2, 10.5]
+  default_target: [0, 1.2, 0]
+
+typography:
+  headline:
+    font_family: "jf-openhuninn"
+    path: "fonts/huninn.ttf"
+    license: "OFL-1.1 (Open Font License, Commercial Friendly)"
+    role: "主標題、關鍵字卡、數字強調"
+  body:
+    font_family: "Noto Sans TC"
+    path: "fonts/NotoSansTC-VF.ttf"
+    license: "OFL-1.1"
+    role: "副標題、規格對照清單、表格數值"
+
+motion_physics:
+  framerate_sim: 12              # 定格動畫步進頻率 (Stop-motion stepped time)
+  squash_stretch:
+    anticipation_scale: [1.25, 0.75, 1.25]  # 起跳/蓄力壓扁
+    flight_scale: [0.85, 1.25, 0.85]        # 騰空拉伸
+    impact_scale: [1.35, 0.65, 1.35]        # 著地衝擊
+  easing:
+    spring_out: "cubic-bezier(0.34, 1.56, 0.64, 1)" # 卡通回彈
+    smooth_in_out: "cubic-bezier(0.65, 0, 0.35, 1)"

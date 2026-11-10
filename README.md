@@ -1,83 +1,123 @@
-# Puti-AI | 3D 極簡黏土定格動畫解說影片生成引擎
-> **對標 Jerry_AI Claude 3D 小黃人定格動畫工法・純代碼 Three.js 程式化場景・Playwright 1080p 逐幀無損渲染管線**
+# Puti-AI | 3D 黏土定格動畫解說影片生成引擎 (3D Clay Explainer Video)
 
-本專案完整復刻並工程化落地了爆款 3D 黏土小人知識點解說動畫管線。告別傳統 AI 影片生成模型（如 Runway/Luma/Sora/H3）的「時間膨脹特徵漂移、角色突變、文字穿幫」痛點，採用**100% 程式化決定論架構**，讓每一幀畫面都精準對齊旁白時間碼與物理演技。
+> **對標 Jerry_AI Claude 3D 極簡小橘人解說片工法 ╳ 純代碼 Three.js 程式化動效 ╳ Playwright 1080p 逐幀無損渲染管線**
 
----
-
-## 🌟 核心工程亮點
-
-1. **原汁原味 3D 啞光黏土風格 (Matte Clay Shader)**
-   - 採用低粗糙度 `MeshStandardMaterial` 結合微噪點凹凸貼圖（Procedural Noise Bump Map）。
-   - 攝影棚雙向柔光設定（主光、側補光、邊緣光、環境環境遮擋 AO）。
-   - 主角專屬地面接觸軟陰影（Contact AO），跳躍時動態縮小淡化，落地時重壓形變。
-
-2. **時間決定論求值架構 (`__seekTo(timeSec)`)**
-   - 畫面狀態是時間 $t$ 的**純函數**，完全杜絕幀相依（Frame-dependent）狀態累積。
-   - 支援離線跳幀、倒播、任意倍速渲染，渲染過程無人值守零崩潰。
-
-3. **靈動演技控制器 (Acting & Physics System)**
-   - **視線追蹤 (Gaze Tracking)**：頭部與眼球隨時間動態聚焦當前說話字卡，內建視線保護限制（防止翻白眼）。
-   - **誇張擠壓拉伸 (Squash & Stretch)**：跳躍起飛拉長、著地受壓扁平，完全符合皮克斯動畫 12 原則。
-   - **恐慌／慶祝／驚疑三態表演**：含眨眼、歪頭、雙手舉起、旋轉飛躍等情緒動態。
-
-4. **雙層無鋸齒立體卡片架構**
-   - 象牙白厚實倒角底板（`RoundedBoxGeometry`）＋ 獨立前置平面字卡貼圖（前置 0.003）。
-   - 徹底解決倒角處 UV 拉伸產生黑線鋸齒的產業痛點。
-
-5. **Playwright 1080p 60/30fps 逐格無損壓製**
-   - 內建非同步管線調用本機 Headless Chrome 逐幀截圖，直接管線輸入 FFmpeg。
-   - 實測每秒渲染 21~25 fps，60 秒全片僅需約 80 秒即產出 1080p 廣播級 MP4。
+本專案是一套專為製作高品質 **3D 黏土定格風格知識點解說短片** 的開源程式碼引擎。徹底擺脫黑盒 AI 影片生成模型（如 Runway / Luma / Sora / MiniMax H3）的「文字亂碼、角色五官崩壞、物件幻覺變形、秒數配額限制」痛點，採用 **100% 程式碼確定性渲染技術**，確保每一格畫面皆由嚴謹的 3D 著色器與物理參數控制。
 
 ---
 
-## 📁 目錄結構
+## 🌟 核心技術與特色亮點
+
+1. **啞光黏土微噪點材質 (Matte Clay Shader)**
+   - 使用低粗糙度 `MeshStandardMaterial` 結合程序化微噪點凹凸（Procedural Noise Bump Map）。
+   - 燈光配置仿定格動畫微距攝影棚：雙側冷暖補光 + 柔和接觸陰影（Contact AO），落地時壓扁回彈帶有真實重量感。
+
+2. **時間純函數跳轉機制 (`__seekTo(timeSec)`)**
+   - 畫面狀態是時間 $t$ 的 *純函數*，不存在依賴播放幀率的累積誤差。
+   - 支援任意秒數瞬移、倒帶、非線性調度，精準對齊旁白每一句語音波形與音效重擊點。
+
+3. **物理演技系統 (Acting & Physics System)**
+   - **視線追蹤 (Gaze Tracking)**：頭部與眼球自然朝向空中懸浮的知識卡片與視角焦點。
+   - **擠壓與拉伸 (Squash & Stretch)**：起跳拉伸、著地衝擊壓扁，還原傳統定格迪士尼 12 原則。
+   - **階梯式定格步進**：支援 12fps 定格動畫階梯采樣，呈現逼真的黏土定格頓挫感。
+
+4. **100% 程序化安全音效與配樂 (Procedural Audio & BGM)**
+   - 內建純數學正弦泛音合成器 (`synth_sfx.py`)，自動產生水晶叮、木質咚、金牌揭曉鏘、卡通彈跳蹦。
+   - 內建溫潤的 **卡林巴琴 (Kalimba) C 大調五度進行背景音樂**，零版權風險、免外部依賴。
+
+5. **自動字幕與雙比例輸出**
+   - 支援從 `cues.json` 一鍵匯出符合工業標準的 `subtitles.srt` 與 `subtitles.vtt`。
+   - 支援 16:9 橫式（1920x1080）與 9:16 直式（1080x1920）動態攝影機視角切換。
+
+6. **Playwright 1080p 逐幀管道離線渲染**
+   - 透過 Playwright 啟動 Headless Chrome 逐格繪製 Canvas，直通管道餵給 FFmpeg 進行 H.264 編碼。
+   - 實測每秒渲染 21~25 fps，60 秒全片約 75 秒即可無損壓制出 1080p 廣播級 MP4。
+
+---
+
+## 📂 專案目錄結構
 
 ```text
-├── index.html                   # 核心 Three.js 3D 舞台、黏土材質與時間函數
-├── update_scene.py              # 場景編修與幾何參數即時更新器
-├── apply_final_acting.py        # 角色演技、動態物理與視線追蹤控制器
-├── synth_sfx.py                 # 程式化環境音效與點對點動態音效合成
-├── tts.py                       # 旁白語音生成與時間碼對齊
-├── 3D黏土動畫實戰踩坑與最佳實踐.md  # 逆向工程踩坑全記錄與解決方案
-├── audio/                       # 旁白音軌、音效與 BGM
-├── fonts/                       # 開源思源黑體與日系圓體字型
-└── Gemini購物_完整4幕3D知識點影片_1080p.mp4  # 完整成品展示
+puti-clay-explainer-video/
+├── build.py                  # 統一參數化主構建管線 (--check, --audio, --subtitles, --render)
+├── render_video.py           # Playwright 逐幀管道流渲染腳本
+├── synth_sfx.py              # 100% 程序化數學音效與 Kalimba BGM 合成器
+├── mix_audio.py              # 廣播級 EBU R128 (-14 LUFS) 響度多軌自動混音器
+├── tts.py                    # 旁白語音生成與時間軸校正
+├── export_subtitles.py       # 自動產生 SRT / VTT 字幕檔
+├── scene.html                # 核心 Three.js 3D 黏土定格動畫互動舞台
+├── index.html                # 進入點與導覽頁
+├── cues.json                 # 時間軸分鏡、文案對齊與動作節拍標記
+├── style.yaml                # 黏土風格視覺規格契約 (Design Tokens)
+├── requirements.txt          # Python 依賴清單
+├── package.json              # Playwright / Three.js 依賴定義
+├── audio/                    # 自動合成的旁白、音效與 BGM
+├── fonts/                    # 開源可商用字型 (jf-openhuninn, NotoSansTC)
+└── archive/                  # 歷史修補腳本與除錯截圖歸檔
 ```
 
 ---
 
 ## 🚀 快速上手
 
-### 1. 安裝環境需求
+### 1. 安裝環境依賴
+
 ```bash
-pip install playwright soundfile numpy edge-tts
+# 1. 安裝 Python 依賴
+pip install -r requirements.txt
+
+# 2. 安裝 Playwright 瀏覽器核心
 playwright install chromium
 ```
 
-### 2. 本地預覽 3D 舞台
-啟動本地伺服器並在瀏覽器查看：
+> **注意**：系統須已安裝 `ffmpeg` 與 `ffprobe` 並加入 PATH。
+
+### 2. 環境健康檢查
+
+```bash
+python build.py --check
+```
+
+### 3. 一鍵完整構建與渲染
+
+```bash
+# 執行完整管線：合成音訊 -> 匯出字幕 -> Playwright 離線渲染 1080p MP4
+python build.py --all
+
+# 或分步執行：
+python build.py --audio      # 合成音效與 BGM 混音
+python build.py --subtitles  # 產生 subtitles.srt 與 subtitles.vtt
+python build.py --render     # 渲染橫式 16:9 (1920x1080)
+python build.py --render --aspect 9:16  # 渲染直式 9:16 (1080x1920)
+```
+
+### 4. 本地即時預覽 3D 場景
+
+直接在瀏覽器打開 `scene.html` 或啟動本地靜態伺服器：
+
 ```bash
 python -m http.server 8000
-# 瀏覽器打開 http://localhost:8000
 ```
+瀏覽器訪問：`http://localhost:8000/scene.html`
 
-### 3. 逐幀離線渲染 1080p 影片
-```bash
-python test_render.py
-```
+- 拖曳滑鼠：360 度環視 3D 黏土角色與場景。
+- 空白鍵：播放 / 暫停。
+- 鍵盤左右方向鍵：逐秒快轉或倒退。
 
 ---
 
-## 📚 實戰踩坑手冊
-完整踩坑手冊請詳閱 [3D黏土動畫實戰踩坑與最佳實踐.md](3D黏土動畫實戰踩坑與最佳實踐.md)，涵蓋：
-- RoundedBox 倒角黑邊徹底解法
-- 接觸陰影 (Contact AO) 換幕洩漏排錯
-- Three.js 旋轉正負號與時間軸求值對齊
-- FFmpeg `amix` 多軌衰減與末端爆音解決方案
+## 🎨 視覺規格契約 (`style.yaml`)
+
+本專案將黏土材質的所有核心物理與視覺參數固化於 `style.yaml`，確保不同分鏡與影片具備嚴格一致的美術調性：
+- **小橘人色碼**：`#f97316`（底光搭配 `#ea580c` 陰影修邊）
+- **材質粗糙度 (Roughness)**：`0.88`（啞光非金屬）
+- **程序微噪點 (Bump Scale)**：`0.0025`
+- **相機視角 (FOV)**：`38`（仿 50mm 微距鏡頭）
+- **標準字型**：標題使用粉圓體 (`huninn.ttf`)、內文使用思源黑體 (`NotoSansTC-VF.ttf`)。
 
 ---
 
-## 📜 版權與授權
+## 📜 版權與宣告
+
 屏東縣後庄國小黃朝榮老師作品，免費分享，歡迎擴散推廣，嚴禁商用與任何侵權、不尊重著作權的行為。
-更多 Puti-AI 教學工具請前往：[https://padlet.com/clongwh/puti_ai_tools](https://padlet.com/clongwh/puti_ai_tools)
+更多教學工具請參考：[Puti-AI 教學工具庫](https://padlet.com/clongwh/puti_ai_tools)
